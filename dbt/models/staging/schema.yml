@@ -1,0 +1,137 @@
+version: 2
+
+models:
+  - name: stg_olist_customers
+    description: Standardized Olist customers.
+    columns:
+      - name: customer_id
+        description: Primary key of the customer.
+        tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: Unique customer identifier (may repeat across orders).
+        tests:
+          - not_null
+      - name: customer_city
+        description: Customer city.
+      - name: customer_state
+        description: Customer state (2-letter code).
+
+  - name: stg_olist_orders
+    description: Standardized Olist orders with parsed timestamps.
+    columns:
+      - name: order_id
+        description: Primary key of the order.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Customer who placed the order.
+        tests:
+          - not_null
+      - name: order_status
+        description: Order lifecycle status (delivered, shipped, canceled, etc.).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['delivered', 'shipped', 'processing', 'canceled', 'unavailable', 'created', 'approved', 'invoiced']
+      - name: order_purchase_timestamp
+        description: Order purchase timestamp.
+        tests:
+          - not_null
+
+  - name: stg_olist_order_items
+    description: Standardized Olist order items.
+    columns:
+      - name: order_id
+        description: Order identifier.
+        tests:
+          - not_null
+      - name: order_item_id
+        description: Item sequence within the order.
+        tests:
+          - not_null
+      - name: product_id
+        description: Product identifier.
+        tests:
+          - not_null
+      - name: seller_id
+        description: Seller identifier.
+        tests:
+          - not_null
+      - name: price
+        description: Item price in BRL.
+        tests:
+          - not_null
+      - name: freight_value
+        description: Freight value in BRL.
+
+  - name: stg_olist_order_payments
+    description: Standardized Olist order payments.
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: payment_sequential
+        tests:
+          - not_null
+      - name: payment_type
+        description: Payment method (credit_card, boleto, voucher, debit_card).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']
+      - name: payment_value
+        description: Payment value in BRL.
+        tests:
+          - not_null
+
+  - name: stg_olist_order_reviews
+    description: Standardized Olist order reviews.
+    columns:
+      - name: review_id
+        tests:
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
+      - name: review_score
+        description: Review score from 1 to 5.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+  - name: stg_olist_products
+    description: Standardized Olist products.
+    columns:
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+      - name: product_category_name
+        description: Olist product category (Portuguese).
+
+  - name: stg_olist_sellers
+    description: Standardized Olist sellers.
+    columns:
+      - name: seller_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_olist_geolocation
+    description: Standardized Olist geolocation.
+    columns:
+      - name: zip_code_prefix
+        tests:
+          - not_null
+
+  - name: stg_olist_category_translation
+    description: Product category name translation (Portuguese -> English).
+    columns:
+      - name: product_category_name
+        tests:
+          - unique
+          - not_null

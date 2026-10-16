@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Automated Power BI Semantic Model Refresh Flow",
+    "output": "powerbi_refresh_flow.html",
+    "viewBox": [820, 920],
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "standard"
+  },
+  "participants": [
+    { "id": "airflow", "type": "backend", "label": "Airflow DAG", "sublabel": "Task 8" },
+    { "id": "refresher", "type": "backend", "label": "Refresh Module", "sublabel": "powerbi_refresh" },
+    { "id": "entra", "type": "security", "label": "Entra ID", "sublabel": "OAuth 2.0" },
+    { "id": "powerbi_api", "type": "cloud", "label": "Power BI API", "sublabel": "v1.0/myorg" },
+    { "id": "gateway", "type": "cloud", "label": "Gateway", "sublabel": "Data Tunnel" },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "analytics.*" }
+  ],
+  "segments": [
+    { "from": 150, "to": 320, "label": "1. Upstream Success Gate & OAuth Token" },
+    { "from": 340, "to": 580, "label": "2. Trigger Cloud Semantic Model Refresh" },
+    { "from": 600, "to": 800, "label": "3. Gateway Pull & Status Resolution" }
+  ],
+  "messages": [
+    { "from": "airflow", "to": "refresher", "y": 180, "label": "trigger refresh (Task 8)", "variant": "emphasis" },
+    { "from": "refresher", "to": "entra", "y": 230, "label": "POST /oauth2/v2.0/token", "variant": "security" },
+    { "from": "entra", "to": "refresher", "y": 280, "label": "Bearer JWT token", "variant": "return" },
+    { "from": "refresher", "to": "powerbi_api", "y": 360, "label": "POST /datasets/:id/refreshes", "variant": "emphasis" },
+    { "from": "powerbi_api", "to": "refresher", "y": 420, "label": "202 Accepted + refreshId", "variant": "return" },
+    { "from": "powerbi_api", "to": "gateway", "y": 480, "label": "request query refresh", "variant": "default" },
+    { "from": "gateway", "to": "postgres", "y": 530, "label": "SELECT * FROM analytics.vw_*", "variant": "default" },
+    { "from": "postgres", "to": "gateway", "y": 620, "label": "fresh dataset records", "variant": "return" },
+    { "from": "refresher", "to": "powerbi_api", "y": 680, "label": "GET /refreshes/:id (poll)", "variant": "dashed" },
+    { "from": "powerbi_api", "to": "refresher", "y": 740, "label": "200 status: Completed", "variant": "return" },
+    { "from": "refresher", "to": "airflow", "y": 780, "label": "RefreshResult(status=Completed)", "variant": "return" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Strict Success Gating",
+      "items": [
+        "Airflow invokes the refresh module ONLY after tasks 1 through 7 succeed",
+        "Upstream failure immediately prevents trigger, avoiding dashboard inconsistency"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Secure Client Credentials",
+      "items": [
+        "OAuth 2.0 flow using Azure Service Principal with Dataset.ReadWrite.All scope",
+        "Tokens and client secrets are never written to logs or stored in code"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RetailPulse Data Warehouse Architecture (Layers & Star Schema)",
+    "output": "data_warehouse_model.html",
+    "viewBox": [1080, 520],
+    "animation": "trace",
+    "quality_profile": "standard"
+  },
+  "stages": [
+    { "label": "Raw Layer" },
+    { "label": "Staging Layer" },
+    { "label": "Intermediate" },
+    { "label": "Dimensional Marts" },
+    { "label": "Reporting Views" }
+  ],
+  "nodes": [
+    { "id": "raw_zone", "type": "database", "label": "raw.* Schema", "sublabel": "9 Untransformed Tables", "stage": 0, "row": 1, "tag": "landing" },
+    { "id": "staging_zone", "type": "database", "label": "stg_olist_*", "sublabel": "Cleaned Types & Dates", "stage": 1, "row": 1, "tag": "views" },
+    { "id": "int_zone", "type": "backend", "label": "int_* Aggregations", "sublabel": "Orders & Items Aggs", "stage": 2, "row": 1, "tag": "tables" },
+    { "id": "marts_dims", "type": "database", "label": "Dimensions", "sublabel": "5 Dimension Tables", "stage": 3, "row": 0, "tag": "star schema" },
+    { "id": "marts_facts", "type": "database", "label": "Fact Tables", "sublabel": "5 Fact Tables", "stage": 3, "row": 2, "tag": "incremental" },
+    { "id": "analytics_views", "type": "frontend", "label": "Power BI Views", "sublabel": "analytics.vw_*", "stage": 4, "row": 1, "tag": "no double-count" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "raw_zone", "to": "staging_zone", "label": "normalize types", "classification": "dbt staging", "variant": "emphasis" },
+    { "id": "f2", "from": "staging_zone", "to": "int_zone", "label": "join & deduplicate", "classification": "dbt intermediate", "variant": "emphasis" },
+    { "id": "f3", "from": "int_zone", "to": "marts_dims", "label": "surrogate keys", "classification": "dimensions", "variant": "default" },
+    { "id": "f4", "from": "int_zone", "to": "marts_facts", "label": "grain integrity", "classification": "facts", "variant": "emphasis" },
+    { "id": "f5", "from": "marts_dims", "to": "analytics_views", "label": "star joins", "classification": "reporting", "variant": "default" },
+    { "id": "f6", "from": "marts_facts", "to": "analytics_views", "label": "curated KPIs", "classification": "BI layer", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Layered Data Governance",
+      "items": [
+        "Raw: exact landing tables loaded via Python bulk copy",
+        "Staging: typed views normalizing dates, nulls, and schema anomalies",
+        "Intermediate: pre-aggregated order deliveries and item line-totals",
+        "Marts: Kimball dimensional model with strict grain enforcement"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Grain Protection",
+      "items": [
+        "fact_orders maintains order-level grain with item-based revenue",
+        "fact_payments isolates payment splits to eliminate Cartesian joins"
+      ]
+    }
+  ]
+}

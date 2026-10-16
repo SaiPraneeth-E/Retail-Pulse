@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RetailPulse End-to-End System Architecture",
+    "output": "system_architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "olist_csv", "type": "external", "label": "Olist E-Commerce", "sublabel": "9 CSV Datasets (~100k orders)", "pos": [40, 260], "size": [180, 64] },
+    { "id": "airflow", "type": "backend", "label": "Apache Airflow 2.10", "sublabel": "9-Task DAG Orchestrator", "pos": [260, 100], "size": [180, 64], "tag": "Gated Execution" },
+    { "id": "python_ingest", "type": "backend", "label": "Python Ingestion Engine", "sublabel": "loader.py / psycopg2 / bulk_load", "pos": [260, 260], "size": [180, 64], "tag": "Savepoint Safe" },
+    { "id": "pg_audit", "type": "database", "label": "PostgreSQL: audit.*", "sublabel": "Pipeline & Quality Logs", "pos": [480, 100], "size": [180, 64] },
+    { "id": "pg_raw", "type": "database", "label": "PostgreSQL: raw.*", "sublabel": "Source Landing Tables", "pos": [480, 260], "size": [180, 64] },
+    { "id": "dbt_core", "type": "backend", "label": "dbt Core 1.8", "sublabel": "staging -> int -> marts", "pos": [700, 260], "size": [180, 64], "tag": "Incremental" },
+    { "id": "powerbi_refresh", "type": "backend", "label": "Power BI Refresh Gate", "sublabel": "Entra ID / REST API", "pos": [920, 100], "size": [180, 64], "tag": "Success Gated" },
+    { "id": "pg_analytics", "type": "database", "label": "PostgreSQL: analytics.*", "sublabel": "Star Schema + 9 Views", "pos": [920, 260], "size": [180, 64] },
+    { "id": "powerbi_service", "type": "cloud", "label": "Microsoft Power BI", "sublabel": "Executive Dashboards (5 Pages)", "pos": [1160, 260], "size": [190, 64] },
+    { "id": "gateway", "type": "cloud", "label": "On-Premises Gateway", "sublabel": "Secure DB Tunnel", "pos": [1160, 100], "size": [190, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Docker Compose Services (retailpulse network)", "wraps": ["airflow", "python_ingest", "pg_audit", "pg_raw", "dbt_core", "powerbi_refresh", "pg_analytics"] },
+    { "kind": "security-group", "label": "Power BI Cloud & Entra ID", "wraps": ["powerbi_service", "gateway"] }
+  ],
+  "connections": [
+    { "id": "csv_to_ingest", "from": "olist_csv", "to": "python_ingest", "label": "CSVs", "variant": "emphasis" },
+    { "id": "airflow_triggers_ingest", "from": "airflow", "to": "python_ingest", "label": "Task 2", "variant": "dashed" },
+    { "id": "ingest_to_raw", "from": "python_ingest", "to": "pg_raw", "label": "Bulk Insert", "variant": "emphasis" },
+    { "id": "ingest_to_audit", "from": "python_ingest", "to": "pg_audit", "label": "Audit Logs" },
+    { "id": "raw_to_dbt", "from": "pg_raw", "to": "dbt_core", "label": "Refs" },
+    { "id": "dbt_to_analytics", "from": "dbt_core", "to": "pg_analytics", "label": "Marts" },
+    { "id": "airflow_triggers_refresh", "from": "airflow", "to": "powerbi_refresh", "label": "Task 8", "variant": "security" },
+    { "id": "refresh_to_bi", "from": "powerbi_refresh", "to": "powerbi_service", "label": "POST /refreshes" },
+    { "id": "gateway_to_bi", "from": "gateway", "to": "powerbi_service", "label": "Sync Channel" },
+    { "id": "analytics_to_bi", "from": "pg_analytics", "to": "powerbi_service", "label": "DirectQuery / Direct Import" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Data Ingestion & Warehousing", "items": ["9 Olist CSV datasets validated and ingested with batch savepoint protection", "PostgreSQL 16 warehouse with raw, staging, analytics, and audit schemas"] },
+    { "dot": "cyan", "title": "Analytics Engineering", "items": ["dbt Core 1.8 dimensional star schema (dim_customer, dim_product, dim_seller, dim_date, dim_geography)", "Order grain fact tables prevent revenue double-counting from multi-item and multi-payment joins"] },
+    { "dot": "amber", "title": "Orchestration & BI Automation", "items": ["Apache Airflow 2.10 runs a strict 9-task dependency DAG", "Power BI REST API refresh triggered exclusively after successful pipeline run"] }
+  ]
+}

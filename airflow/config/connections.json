@@ -1,0 +1,10 @@
+# Airflow connection configuration for RetailPulse
+# Add this connection in the Airflow UI (Admin -> Connections) or via env:
+#   AIRFLOW_CONN_RETAILPULSE_POSTGRES=postgres://retailpulse:<password>@postgres:5432/retailpulse
+conn_id = "retailpulse_postgres"
+conn_type = "postgres"
+host = "postgres"
+login = "retailpulse"
+password = "${POSTGRES_PASSWORD}"
+schema = "retailpulse"
+port = 5432

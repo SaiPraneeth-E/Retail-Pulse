@@ -1,0 +1,9 @@
+pandas==2.3.3
+psycopg2-binary==2.9.9
+requests==2.33.1
+SQLAlchemy==2.0.21
+python-dotenv==1.0.1
+pytest==9.1.1
+dbt-core==1.12.6
+dbt-postgres==1.12.6
+tenacity==8.5.0

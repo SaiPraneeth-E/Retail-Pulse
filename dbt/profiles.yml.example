@@ -1,0 +1,30 @@
+# RetailPulse dbt profiles template
+# Copy to profiles.yml and fill in your credentials. Never commit real secrets.
+#
+# Connection details match the Docker Compose PostgreSQL service when running
+# inside the dbt container (host: postgres). For local development use
+# host: localhost and the port mapped in docker-compose.yml.
+
+retailpulse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: ${POSTGRES_HOST:-localhost}
+      port: ${POSTGRES_PORT:-5432}
+      user: ${POSTGRES_USER:-retailpulse}
+      password: ${POSTGRES_PASSWORD:-changeme}
+      dbname: ${POSTGRES_DB:-retailpulse}
+      schema: analytics
+      threads: 4
+      keepalives_idle: 240
+
+    prod:
+      type: postgres
+      host: ${POSTGRES_HOST:-localhost}
+      port: ${POSTGRES_PORT:-5432}
+      user: ${POSTGRES_USER:-retailpulse}
+      password: ${POSTGRES_PASSWORD:-changeme}
+      dbname: ${POSTGRES_DB:-retailpulse}
+      schema: analytics
+      threads: 8

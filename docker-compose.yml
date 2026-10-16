@@ -1,0 +1,110 @@
+# RetailPulse Docker Compose
+# Services: PostgreSQL (data warehouse) + Apache Airflow (orchestrator) + dbt runner.
+#
+# Usage (Windows PowerShell):
+#   Copy .env.example to .env, edit values if needed, then:
+#   .\scripts\setup.ps1
+#   docker compose up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: retailpulse_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retailpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_env_file}
+      POSTGRES_DB: ${POSTGRES_DB:-retailpulse}
+    ports:
+      - "${PGPORT:-5432}:5432"
+    volumes:
+      - retailpulse_postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-retailpulse} -d ${POSTGRES_DB:-retailpulse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - retailpulse
+
+  airflow:
+    image: apache/airflow:2.10.3-python3.10
+    container_name: retailpulse_airflow
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: ${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION:-False}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-False}
+      AIRFLOW__CORE__UNIT_TEST_MODE: ${AIRFLOW__CORE__UNIT_TEST_MODE:-False}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-retailpulse}:${POSTGRES_PASSWORD:-changeme_in_env_file}@postgres:5432/retailpulse_airflow
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__BASE_LOG_FOLDER: /opt/airflow/logs
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: 30
+      AIRFLOW_CONN_RETAILPULSE_POSTGRES: postgresql+psycopg2://${POSTGRES_USER:-retailpulse}:${POSTGRES_PASSWORD:-changeme_in_env_file}@postgres:5432/${POSTGRES_DB:-retailpulse}
+      PYTHONPATH: /opt/airflow
+      # Ingestion & dbt configuration
+      PGHOST: postgres
+      PGPORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-retailpulse}
+      POSTGRES_USER: ${POSTGRES_USER:-retailpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_env_file}
+      OLIST_DATA_DIR: /opt/airflow/data/olist
+      DBT_PROFILES_DIR: /opt/airflow/dbt
+      # Additional Python dependencies for in-container dbt and ingestion
+      _PIP_ADDITIONAL_REQUIREMENTS: "dbt-core==1.8.2 dbt-postgres==1.8.2 psycopg2-binary==2.9.10 requests==2.32.3"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/config:/opt/airflow/config
+      - ./ingestion:/opt/airflow/ingestion:ro
+      - ./data:/opt/airflow/data:ro
+      - ./dbt:/opt/airflow/dbt
+      - ./sql:/opt/airflow/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - retailpulse
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --firstname Retail --lastname Pulse --role Admin --email admin@example.com --password admin 2>/dev/null || true &&
+        airflow webserver &
+        airflow scheduler
+      "
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.12.6
+    container_name: retailpulse_dbt
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retailpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_env_file}
+      POSTGRES_DB: ${POSTGRES_DB:-retailpulse}
+      PGHOST: postgres
+      PGPORT: 5432
+      DBT_PROFILES_DIR: /dbt
+    working_dir: /dbt
+    volumes:
+      - ./dbt:/dbt
+    networks:
+      - retailpulse
+    command: sleep infinity
+
+volumes:
+  retailpulse_postgres_data:
+
+networks:
+  retailpulse:
+    driver: bridge

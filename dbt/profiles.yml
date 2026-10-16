@@ -1,0 +1,25 @@
+# RetailPulse dbt profile
+# Supports both local and Docker execution seamlessly via environment variables.
+
+retailpulse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'retailpulse') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'changeme_in_env_file') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'retailpulse') }}"
+      schema: analytics
+      threads: 4
+      keepalives_idle: 240
+    prod:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'retailpulse') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'changeme_in_env_file') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'retailpulse') }}"
+      schema: analytics
+      threads: 8

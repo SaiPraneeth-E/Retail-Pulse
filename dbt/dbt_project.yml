@@ -1,0 +1,43 @@
+name: retailpulse
+version: '1.0.0'
+config-version: 2
+
+profile: retailpulse
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+models:
+  retailpulse:
+    staging:
+      materialized: view
+    intermediate:
+      materialized: table
+    marts:
+      materialized: table
+      fact_orders:
+        materialized: incremental
+        unique_key: order_id
+        incremental_strategy: merge
+      fact_order_items:
+        materialized: incremental
+        unique_key:
+          - order_id
+          - order_item_id
+        incremental_strategy: delete+insert
+      fact_payments:
+        materialized: incremental
+        unique_key:
+          - order_id
+          - payment_sequential
+        incremental_strategy: delete+insert

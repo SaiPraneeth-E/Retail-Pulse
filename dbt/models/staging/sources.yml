@@ -1,0 +1,24 @@
+version: 2
+
+sources:
+  - name: retailpulse_raw
+    schema: raw
+    tables:
+      - name: olist_customers_dataset
+        description: Raw Olist customers dataset
+      - name: olist_orders_dataset
+        description: Raw Olist orders dataset
+      - name: olist_order_items_dataset
+        description: Raw Olist order items dataset
+      - name: olist_order_payments_dataset
+        description: Raw Olist order payments dataset
+      - name: olist_order_reviews_dataset
+        description: Raw Olist order reviews dataset
+      - name: olist_products_dataset
+        description: Raw Olist products dataset
+      - name: olist_sellers_dataset
+        description: Raw Olist sellers dataset
+      - name: olist_geolocation_dataset
+        description: Raw Olist geolocation coordinate measurements
+      - name: olist_product_category_name_translation
+        description: Raw Olist product category name translation

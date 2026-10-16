@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PostgreSQL Analytics Views to Power BI Dashboards",
+    "output": "powerbi_analytics_views.html",
+    "quality_profile": "standard"
+  },
+  "components": [
+    { "id": "marts_db", "type": "database", "label": "PostgreSQL Marts", "sublabel": "Kimball Star Schema", "pos": [40, 260], "size": [180, 64], "tag": "facts & dims" },
+    { "id": "vw_kpi", "type": "backend", "label": "Executive Views", "sublabel": "vw_executive_kpis", "pos": [300, 120], "size": [180, 64] },
+    { "id": "vw_catalog", "type": "backend", "label": "Catalog Views", "sublabel": "vw_category & product", "pos": [300, 260], "size": [180, 64] },
+    { "id": "vw_ops", "type": "backend", "label": "Operations Views", "sublabel": "vw_seller, delivery", "pos": [300, 400], "size": [180, 64] },
+    { "id": "p1_exec", "type": "frontend", "label": "P1: Executive", "sublabel": "Revenue & On-Time %", "pos": [600, 80], "size": [180, 60] },
+    { "id": "p2_prod", "type": "frontend", "label": "P2: Product/Cat", "sublabel": "Sales & Margins", "pos": [600, 180], "size": [180, 60] },
+    { "id": "p3_seller", "type": "frontend", "label": "P3: Sellers", "sublabel": "Ratings & Quality", "pos": [600, 280], "size": [180, 60] },
+    { "id": "p4_cust", "type": "frontend", "label": "P4: Customers", "sublabel": "Cohorts & Geography", "pos": [600, 380], "size": [180, 60] },
+    { "id": "p5_deliv", "type": "frontend", "label": "P5: Satisfaction", "sublabel": "Delays vs Stars", "pos": [600, 480], "size": [180, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "PostgreSQL Analytics Schema", "wraps": ["marts_db", "vw_kpi", "vw_catalog", "vw_ops"] },
+    { "kind": "security-group", "label": "Power BI Dashboards", "wraps": ["p1_exec", "p2_prod", "p3_seller", "p4_cust", "p5_deliv"] }
+  ],
+  "connections": [
+    { "id": "m1", "from": "marts_db", "to": "vw_kpi" },
+    { "id": "m2", "from": "marts_db", "to": "vw_catalog" },
+    { "id": "m3", "from": "marts_db", "to": "vw_ops" },
+    { "id": "c1", "from": "vw_kpi", "to": "p1_exec" },
+    { "id": "c2", "from": "vw_catalog", "to": "p2_prod" },
+    { "id": "c3", "from": "vw_ops", "to": "p3_seller" },
+    { "id": "c4", "from": "vw_kpi", "to": "p4_cust" },
+    { "id": "c5", "from": "vw_ops", "to": "p5_deliv" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Optimized Reporting Views",
+      "items": [
+        "Views pre-aggregate complex joins to guarantee sub-second dashboard query performance",
+        "Granularity is explicitly defined per view to eliminate Cartesian duplication in Power BI"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Multi-Page Decision Support",
+      "items": [
+        "Executive overview pairs top-line KPIs with geographic heatmaps and monthly trends",
+        "Delivery and satisfaction page demonstrates correlation between delivery delays and poor review ratings"
+      ]
+    }
+  ]
+}

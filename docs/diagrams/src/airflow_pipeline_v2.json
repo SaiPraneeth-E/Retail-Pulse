@@ -1,0 +1,199 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "RetailPulse Airflow DAG Pipeline Execution",
+    "output": "airflow_pipeline.html",
+    "animation": "trace",
+    "quality_profile": "standard"
+  },
+  "lanes": [
+    {
+      "id": "precheck",
+      "label": "Pre-Check & Ingest"
+    },
+    {
+      "id": "transform",
+      "label": "dbt Transformations"
+    },
+    {
+      "id": "quality",
+      "label": "Quality & Views"
+    },
+    {
+      "id": "delivery",
+      "label": "BI Refresh & Audit"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p1",
+      "label": "Ingestion",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "p2",
+      "label": "Transform",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p3",
+      "label": "Publish & Audit",
+      "fromCol": 5,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "t1_validate",
+    "t2_ingest",
+    "t3_raw_check",
+    "t4_staging",
+    "t5_marts",
+    "t6_tests",
+    "t7_views",
+    "t8_powerbi",
+    "t9_status"
+  ],
+  "nodes": [
+    {
+      "id": "t1_validate",
+      "lane": "precheck",
+      "col": 0,
+      "type": "backend",
+      "label": "Validate Files",
+      "sublabel": "Task 1",
+      "tag": "pre-flight"
+    },
+    {
+      "id": "t2_ingest",
+      "lane": "precheck",
+      "col": 1,
+      "type": "backend",
+      "label": "Ingest Raw",
+      "sublabel": "Task 2",
+      "tag": "savepoints"
+    },
+    {
+      "id": "t3_raw_check",
+      "lane": "precheck",
+      "col": 2,
+      "type": "security",
+      "label": "Validate Raw",
+      "sublabel": "Task 3",
+      "tag": "counts"
+    },
+    {
+      "id": "t4_staging",
+      "lane": "transform",
+      "col": 2,
+      "type": "backend",
+      "label": "dbt Staging",
+      "sublabel": "Task 4",
+      "tag": "views"
+    },
+    {
+      "id": "t5_marts",
+      "lane": "transform",
+      "col": 3,
+      "type": "backend",
+      "label": "dbt Marts",
+      "sublabel": "Task 5",
+      "tag": "facts & dims"
+    },
+    {
+      "id": "t6_tests",
+      "lane": "quality",
+      "col": 3,
+      "type": "security",
+      "label": "dbt Tests",
+      "sublabel": "Task 6",
+      "tag": "blocking"
+    },
+    {
+      "id": "t7_views",
+      "lane": "quality",
+      "col": 4,
+      "type": "backend",
+      "label": "Validate Views",
+      "sublabel": "Task 7",
+      "tag": "9 views"
+    },
+    {
+      "id": "t8_powerbi",
+      "lane": "delivery",
+      "col": 4,
+      "type": "cloud",
+      "label": "Refresh Power BI",
+      "sublabel": "Task 8",
+      "tag": "gated"
+    },
+    {
+      "id": "t9_status",
+      "lane": "delivery",
+      "col": 5,
+      "type": "database",
+      "label": "Record Status",
+      "sublabel": "Task 9",
+      "tag": "audit"
+    }
+  ],
+  "edges": [
+    {
+      "from": "t1_validate",
+      "to": "t2_ingest"
+    },
+    {
+      "from": "t2_ingest",
+      "to": "t3_raw_check"
+    },
+    {
+      "from": "t3_raw_check",
+      "to": "t4_staging",
+      "route": "drop"
+    },
+    {
+      "from": "t4_staging",
+      "to": "t5_marts"
+    },
+    {
+      "from": "t5_marts",
+      "to": "t6_tests",
+      "route": "drop"
+    },
+    {
+      "from": "t6_tests",
+      "to": "t7_views"
+    },
+    {
+      "from": "t7_views",
+      "to": "t8_powerbi",
+      "route": "drop"
+    },
+    {
+      "from": "t8_powerbi",
+      "to": "t9_status"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Airflow Orchestration Integrity",
+      "items": [
+        "Sequential task chain ensures strict ordering and idempotent reruns",
+        "Airflow Connection retailpulse_postgres configured without hardcoding secrets"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Semantic Model Protection",
+      "items": [
+        "Power BI REST API refresh runs strictly after dbt tests and analytics view validation succeed",
+        "Pipeline failure immediately blocks downstream refresh, protecting dashboards from stale or corrupt data"
+      ]
+    }
+  ]
+}

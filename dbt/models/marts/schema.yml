@@ -1,0 +1,125 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: "Customer dimension. Grain: customer_unique_id."
+    columns:
+      - name: customer_key
+        tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        tests:
+          - unique
+          - not_null
+      - name: customer_state
+        description: "Customer state (2-letter code)."
+
+  - name: dim_product
+    description: "Product dimension. Grain: product_id."
+    columns:
+      - name: product_key
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        tests:
+          - unique
+          - not_null
+      - name: product_category_name_english
+        description: "English product category name."
+
+  - name: dim_seller
+    description: "Seller dimension. Grain: seller_id."
+    columns:
+      - name: seller_key
+        tests:
+          - unique
+          - not_null
+      - name: seller_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_geography
+    description: "Geography dimension. Grain: (zip_code_prefix, city, state)."
+    columns:
+      - name: geography_key
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_date
+    description: "Date dimension. Grain: date."
+    columns:
+      - name: date_key
+        tests:
+          - unique
+          - not_null
+      - name: full_date
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_orders
+    description: "Order-level fact. Grain: order_id. Revenue is item-based."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: order_revenue
+        tests:
+          - not_null
+
+  - name: fact_order_items
+    description: "Item-level fact. Grain: (order_id, order_item_id)."
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: order_item_id
+        tests:
+          - not_null
+      - name: price
+        tests:
+          - not_null
+
+  - name: fact_payments
+    description: "Payment-level fact. Grain: (order_id, payment_sequential)."
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: payment_sequential
+        tests:
+          - not_null
+      - name: payment_value
+        tests:
+          - not_null
+
+  - name: fact_reviews
+    description: "Review-level fact. Grain: review_id."
+    columns:
+      - name: review_id
+        tests:
+          - unique
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
+      - name: review_score
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+  - name: fact_delivery_performance
+    description: "Delivery performance fact. Grain: order_id."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: delivery_delay_days
+        description: "Positive values indicate late delivery."

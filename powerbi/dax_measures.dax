@@ -1,0 +1,192 @@
+/*
+    RetailPulse — Production DAX Measure Library
+    Designed for Microsoft Power BI Semantic Models connecting to RetailPulse PostgreSQL.
+    Star Schema Model:
+      - Facts: fact_orders, fact_order_items, fact_payments, fact_reviews, fact_delivery_performance
+      - Dimensions: dim_customer, dim_product, dim_seller, dim_date, dim_geography
+*/
+
+// ============================================================================
+// PAGE 1: EXECUTIVE OVERVIEW MEASURES
+// ============================================================================
+
+Total Revenue = 
+SUM(fact_orders[order_revenue])
+
+Total Orders = 
+DISTINCTCOUNT(fact_orders[order_id])
+
+Average Order Value = 
+DIVIDE([Total Revenue], [Total Orders], 0)
+
+Average Review Score = 
+AVERAGE(fact_reviews[review_score])
+
+Total Delivered Orders = 
+CALCULATE(
+    COUNTROWS(fact_delivery_performance),
+    fact_delivery_performance[is_delivered] = TRUE()
+)
+
+On Time Delivered Orders = 
+CALCULATE(
+    COUNTROWS(fact_delivery_performance),
+    fact_delivery_performance[is_delivered] = TRUE(),
+    fact_delivery_performance[is_late] = FALSE()
+)
+
+On-Time Delivery Rate = 
+DIVIDE([On Time Delivered Orders], [Total Delivered Orders], 0)
+
+Late Delivery Rate = 
+1 - [On-Time Delivery Rate]
+
+// Time Intelligence: Month-over-Month & Year-over-Year
+Revenue Prior Month = 
+CALCULATE(
+    [Total Revenue],
+    DATEADD(dim_date[full_date], -1, MONTH)
+)
+
+Revenue MoM Growth % = 
+DIVIDE(
+    [Total Revenue] - [Revenue Prior Month],
+    [Revenue Prior Month],
+    0
+)
+
+Revenue Prior Year = 
+CALCULATE(
+    [Total Revenue],
+    SAMEPERIODLASTYEAR(dim_date[full_date])
+)
+
+Revenue YoY Growth % = 
+DIVIDE(
+    [Total Revenue] - [Revenue Prior Year],
+    [Revenue Prior Year],
+    0
+)
+
+
+// ============================================================================
+// PAGE 2: PRODUCT & CATEGORY ANALYSIS MEASURES
+// ============================================================================
+
+Category Revenue = 
+SUM(fact_order_items[price])
+
+Category Units Sold = 
+COUNT(fact_order_items[order_item_id])
+
+Category Average Item Price = 
+DIVIDE([Category Revenue], [Category Units Sold], 0)
+
+Category Revenue % of Total = 
+DIVIDE(
+    [Category Revenue],
+    CALCULATE([Category Revenue], ALL(dim_product[product_category_name_english])),
+    0
+)
+
+Category Freight Value = 
+SUM(fact_order_items[freight_value])
+
+Freight Ratio % = 
+DIVIDE([Category Freight Value], [Category Revenue], 0)
+
+
+// ============================================================================
+// PAGE 3: SELLER PERFORMANCE MEASURES
+// ============================================================================
+
+Seller Total Revenue = 
+CALCULATE(
+    SUM(fact_order_items[price])
+)
+
+Seller Total Orders = 
+CALCULATE(
+    DISTINCTCOUNT(fact_order_items[order_id])
+)
+
+Seller Average Rating = 
+CALCULATE(
+    AVERAGE(fact_reviews[review_score]),
+    USERELATIONSHIP(fact_order_items[order_id], fact_reviews[order_id])
+)
+
+Seller Late Deliveries = 
+CALCULATE(
+    DISTINCTCOUNT(fact_order_items[order_id]),
+    fact_delivery_performance[is_late] = TRUE()
+)
+
+Seller Late Delivery % = 
+DIVIDE([Seller Late Deliveries], [Seller Total Orders], 0)
+
+
+// ============================================================================
+// PAGE 4: CUSTOMER & GEOGRAPHY MEASURES
+// ============================================================================
+
+Total Unique Customers = 
+DISTINCTCOUNT(dim_customer[customer_unique_id])
+
+Repeat Customers = 
+CALCULATE(
+    DISTINCTCOUNT(dim_customer[customer_unique_id]),
+    FILTER(
+        dim_customer,
+        CALCULATE(COUNTROWS(fact_orders)) > 1
+    )
+)
+
+Repeat Purchase Rate % = 
+DIVIDE([Repeat Customers], [Total Unique Customers], 0)
+
+Customer Lifetime Value (Avg) = 
+DIVIDE([Total Revenue], [Total Unique Customers], 0)
+
+Orders Per Customer = 
+DIVIDE([Total Orders], [Total Unique Customers], 0)
+
+
+// ============================================================================
+// PAGE 5: DELIVERY & CUSTOMER SATISFACTION MEASURES
+// ============================================================================
+
+Average Delivery Days = 
+AVERAGE(fact_delivery_performance[delivery_days])
+
+Average Estimated Delivery Days = 
+AVERAGE(fact_delivery_performance[estimated_delivery_days])
+
+Average Delivery Delay Days = 
+AVERAGE(fact_delivery_performance[delivery_delay_days])
+
+Low Review Count (1-2 Stars) = 
+CALCULATE(
+    COUNTROWS(fact_reviews),
+    fact_reviews[review_score] IN {1, 2}
+)
+
+Low Review Rate % = 
+DIVIDE([Low Review Count (1-2 Stars)], COUNTROWS(fact_reviews), 0)
+
+High Review Count (4-5 Stars) = 
+CALCULATE(
+    COUNTROWS(fact_reviews),
+    fact_reviews[review_score] IN {4, 5}
+)
+
+High Review Rate % = 
+DIVIDE([High Review Count (4-5 Stars)], COUNTROWS(fact_reviews), 0)
+
+// Review Comment Rate
+Review Comment Rate % = 
+DIVIDE(
+    CALCULATE(COUNTROWS(fact_reviews), fact_reviews[has_comment] = TRUE()),
+    COUNTROWS(fact_reviews),
+    0
+)

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Olist CSV to PostgreSQL Ingestion Flow",
+    "output": "data_ingestion_flow.html",
+    "viewBox": [1080, 520],
+    "animation": "trace",
+    "quality_profile": "standard"
+  },
+  "stages": [
+    { "label": "Source Data" },
+    { "label": "Validation" },
+    { "label": "Batch Processing" },
+    { "label": "Raw Warehouse" },
+    { "label": "Audit Logs" }
+  ],
+  "nodes": [
+    { "id": "csv_files", "type": "external", "label": "Olist CSV Files", "sublabel": "data/olist/*.csv", "stage": 0, "row": 1, "tag": "9 files" },
+    { "id": "validator", "type": "backend", "label": "File Validator", "sublabel": "validate_source_files", "stage": 1, "row": 1, "tag": "pre-check" },
+    { "id": "batcher", "type": "backend", "label": "Batch Loader", "sublabel": "psycopg2 execute_values", "stage": 2, "row": 1, "tag": "savepoints" },
+    { "id": "raw_tables", "type": "database", "label": "PostgreSQL raw.*", "sublabel": "Landing Tables", "stage": 3, "row": 1, "tag": "idempotent" },
+    { "id": "audit_log", "type": "database", "label": "audit.ingestion_log", "sublabel": "Row counts & status", "stage": 4, "row": 1, "tag": "metadata" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "csv_files", "to": "validator", "label": "check exists", "classification": "pre-flight", "variant": "emphasis" },
+    { "id": "f2", "from": "validator", "to": "batcher", "label": "clean tuples", "classification": "memory batch", "variant": "emphasis" },
+    { "id": "f3", "from": "batcher", "to": "raw_tables", "label": "bulk insert", "classification": "10k rows/batch", "variant": "emphasis" },
+    { "id": "f4", "from": "raw_tables", "to": "audit_log", "label": "log summary", "classification": "audit metrics", "variant": "default" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Idempotent Pipeline",
+      "items": [
+        "Each raw table is truncated before loading to prevent duplicate accumulation",
+        "Source files are pre-validated to fail early before database mutations"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Transaction Guardrails",
+      "items": [
+        "Batches execute within SAVEPOINTs to isolate corrupt records",
+        "Execution metrics, rejection reasons, and SHA-256 hashes persist to audit.ingestion_log"
+      ]
+    }
+  ]
+}

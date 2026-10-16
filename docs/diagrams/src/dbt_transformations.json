@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "dbt Transformation Pipeline & Data Quality Testing",
+    "output": "dbt_transformations.html",
+    "viewBox": [1080, 520],
+    "animation": "trace",
+    "quality_profile": "standard"
+  },
+  "stages": [
+    { "label": "Raw Sources" },
+    { "label": "Staging Views" },
+    { "label": "Intermediate Tables" },
+    { "label": "Marts & Incrementals" },
+    { "label": "dbt Tests" }
+  ],
+  "nodes": [
+    { "id": "raw_sources", "type": "database", "label": "raw.olist_*", "sublabel": "Sources YAML", "stage": 0, "row": 1, "tag": "9 sources" },
+    { "id": "stg_views", "type": "database", "label": "Staging Models", "sublabel": "parse_timestamp", "stage": 1, "row": 1, "tag": "views" },
+    { "id": "int_models", "type": "backend", "label": "Intermediate", "sublabel": "Order Aggregations", "stage": 2, "row": 1, "tag": "tables" },
+    { "id": "marts_models", "type": "database", "label": "Star Schema", "sublabel": "Facts & Dimensions", "stage": 3, "row": 1, "tag": "incremental" },
+    { "id": "dbt_tests", "type": "security", "label": "Quality Gates", "sublabel": "unique, null, rels", "stage": 4, "row": 1, "tag": "blocking" }
+  ],
+  "flows": [
+    { "id": "f1", "from": "raw_sources", "to": "stg_views", "label": "dbt run --select staging", "classification": "type normalization", "variant": "emphasis" },
+    { "id": "f2", "from": "stg_views", "to": "int_models", "label": "dbt run --select intermediate", "classification": "grain aggregation", "variant": "emphasis" },
+    { "id": "f3", "from": "int_models", "to": "marts_models", "label": "dbt run --select marts", "classification": "merge incremental", "variant": "emphasis" },
+    { "id": "f4", "from": "marts_models", "to": "dbt_tests", "label": "dbt test", "classification": "schema tests", "variant": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Transformation Workflow",
+      "items": [
+        "dbt staging models cast numeric and timestamp columns safely, normalizing nulls",
+        "Intermediate models aggregate item prices and freight values to the order grain",
+        "Marts materialize Kimball star schema fact and dimension tables"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Continuous Data Quality",
+      "items": [
+        "Unique and not-null constraints tested across primary keys",
+        "Referential integrity enforced via dbt relationship tests across facts and dimensions",
+        "Accepted values verified for order statuses and review score ranges"
+      ]
+    }
+  ]
+}

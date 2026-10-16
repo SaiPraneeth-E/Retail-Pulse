@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RetailPulse Docker Deployment Architecture",
+    "output": "deployment_architecture.html",
+    "quality_profile": "standard"
+  },
+  "components": [
+    { "id": "docker_host", "type": "cloud", "label": "Docker Host", "sublabel": "Windows / Linux Engine", "pos": [40, 200], "size": [180, 64] },
+    { "id": "pg_container", "type": "database", "label": "PostgreSQL 16", "sublabel": "retailpulse_postgres :5432", "pos": [300, 100], "size": [190, 64], "tag": "healthy" },
+    { "id": "airflow_container", "type": "backend", "label": "Apache Airflow", "sublabel": "retailpulse_airflow :8080", "pos": [300, 220], "size": [190, 64], "tag": "web + sched" },
+    { "id": "dbt_container", "type": "backend", "label": "dbt Runner", "sublabel": "retailpulse_dbt", "pos": [300, 340], "size": [190, 64], "tag": "cli runner" },
+    { "id": "vol_data", "type": "database", "label": "PostgreSQL Volume", "sublabel": "retailpulse_postgres_data", "pos": [570, 100], "size": [190, 64], "tag": "persistent" },
+    { "id": "vol_dags", "type": "backend", "label": "Project Mounts", "sublabel": "./airflow, ./dbt, ./data", "pos": [570, 260], "size": [190, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Docker Compose Bridge Network (retailpulse)", "wraps": ["pg_container", "airflow_container", "dbt_container", "vol_data", "vol_dags"] }
+  ],
+  "connections": [
+    { "id": "host_to_pg", "from": "docker_host", "to": "pg_container", "label": ":5432" },
+    { "id": "host_to_air", "from": "docker_host", "to": "airflow_container", "label": ":8080" },
+    { "id": "air_to_pg", "from": "airflow_container", "to": "pg_container" },
+    { "id": "dbt_to_pg", "from": "dbt_container", "to": "pg_container" },
+    { "id": "pg_to_vol", "from": "pg_container", "to": "vol_data", "label": "/var/lib/data" },
+    { "id": "air_to_mount", "from": "airflow_container", "to": "vol_dags", "label": "/opt/airflow" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Container Isolation & Health",
+      "items": [
+        "PostgreSQL 16 Alpine container with pg_isready health checks",
+        "Airflow container depends on healthy PostgreSQL state before startup"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Persistent State",
+      "items": [
+        "Dedicated Docker volume persists database tables and indexes across container lifecycles",
+        "Host directories mounted to allow hot-reloading of Airflow DAGs and dbt models"
+      ]
+    }
+  ]
+}
